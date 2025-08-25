@@ -1,0 +1,103 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Compiled extensions
+*.so
+*.dylib
+*.dll
+
+# Distribution / packaging
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+sdist/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing / coverage
+.tox/
+.nox/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.pytest_cache/
+.hypothesis/
+
+# Type checking / lint caches
+.mypy_cache/
+.pytype/
+.pyre/
+.ruff_cache/
+.pylint.d/
+
+# Environments
+.env
+.venv
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+# OS files (macOS/Windows)
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temp files
+logs/
+log/
+*.log
+tmp/
+temp/
+*.tmp
+
+# Project: large model assets (keep directory, ignore contents)
+models/
+!models/.gitkeep
+!models/README*
+*.gguf
+
+# Project: audio artifacts / recordings
+recordings/
+audio/
+*.wav
+*.flac
+*.mp3
+*.ogg
+
+# Local config overrides (keep shared configs)
+config/*.local.yml
+config/*.secret.yml
+config/*.override.yml
+config/devices.yml
+
+# Misc tooling
+.direnv/
+
