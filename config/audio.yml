@@ -7,7 +7,7 @@ consecutive_hits: 2
 input_device: null   # null means default device
 output_device: null  # null means default device
 input_gain: 1.0
-output_gain: 0.9
+output_gain: 1.0
 limiter_ceiling_db: -3.0
 vad_enabled: true
 vad_rms_threshold: 0.015

@@ -1,0 +1,21 @@
+# Core dependencies
+numpy==1.26.4
+sounddevice==0.4.7
+soundfile==0.12.1
+pyyaml==6.0.2
+loguru==0.7.2
+
+# ASR
+vosk==0.3.44
+
+# LLM with GPU support for RTX 3060
+llama-cpp-python==0.2.90
+
+# Keyword detection
+pyahocorasick==2.1.0
+
+# Optional: GPU acceleration for ONNX (if needed)
+# onnxruntime-gpu==1.18.1
+
+# Windows-specific audio dependencies
+pyaudio==0.2.11

@@ -1,0 +1,17 @@
+sample_rate: 16000
+frame_ms: 20
+out_buffer_ms: 20
+daf_delay_ms: 175
+hold_ms: 600
+consecutive_hits: 2
+input_device: null   # Will be auto-detected
+output_device: null  # Will be auto-detected
+input_gain: 2.5
+output_gain: 0.9
+limiter_ceiling_db: -3.0
+vad_enabled: true
+vad_rms_threshold: 0.015
+vad_silence_ms: 1000
+daf_latch_until_silence: true
+# Note: Audio backend is auto-selected on Windows (WASAPI preferred)
+gpu_acceleration: true           # Enable GPU for LLM
