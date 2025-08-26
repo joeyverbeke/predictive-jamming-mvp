@@ -56,9 +56,11 @@ def test_daf_adjustment():
     # Test different DAF configurations
     base_delay = 175  # Standard DAF delay
     
-    print(f"\nBase DAF delay: {base_delay}ms")
-    print(f"Bluetooth adjustment: +{bluetooth_adjustment}ms")
-    print(f"Total DAF delay: {base_delay + bluetooth_adjustment}ms")
+    print(f"\nTarget DAF delay (mouth-to-ear): {base_delay}ms")
+    print(f"Estimated Bluetooth I/O latency: {bluetooth_adjustment}ms")
+    ring_delay = max(0, base_delay - bluetooth_adjustment)
+    print(f"Ring delay to apply (target - BT): {ring_delay}ms")
+    print(f"Estimated total (ring + BT): {ring_delay + bluetooth_adjustment}ms ≈ target")
     
     # Create DAF ring with adjustment
     daf_ring = DAFRing(
@@ -69,9 +71,9 @@ def test_daf_adjustment():
     
     print(f"\nDAF Ring Configuration:")
     print(f"  Sample rate: {daf_ring.sample_rate} Hz")
-    print(f"  Base delay: {daf_ring.delay_ms}ms")
-    print(f"  Bluetooth adjustment: {daf_ring.bluetooth_adjustment_ms}ms")
-    print(f"  Total delay: {daf_ring.total_delay_ms}ms")
+    print(f"  Target total delay: {daf_ring.delay_ms}ms")
+    print(f"  Estimated BT latency: {daf_ring.bluetooth_adjustment_ms}ms")
+    print(f"  Ring delay (applied): {daf_ring.total_delay_ms}ms")
     print(f"  Delay samples: {daf_ring.delay_samples}")
     
     # Test dynamic adjustment
@@ -79,11 +81,11 @@ def test_daf_adjustment():
     
     # Simulate switching to wired headphones
     daf_ring.update_bluetooth_adjustment(0)
-    print(f"  After switching to wired: {daf_ring.total_delay_ms}ms total delay")
+    print(f"  After switching to wired: {daf_ring.total_delay_ms}ms ring delay (no BT)")
     
     # Simulate switching back to Bluetooth
     daf_ring.update_bluetooth_adjustment(bluetooth_adjustment)
-    print(f"  After switching to Bluetooth: {daf_ring.total_delay_ms}ms total delay")
+    print(f"  After switching to Bluetooth: {daf_ring.total_delay_ms}ms ring delay (with BT)")
     
     return True
 

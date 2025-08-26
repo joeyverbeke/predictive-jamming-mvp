@@ -1,6 +1,7 @@
 import numpy as np
 import vosk
 import os
+import threading
 from typing import Optional
 
 
@@ -33,6 +34,10 @@ class ASRVosk:
         self.rolling_text = ""
         self.last_partial = ""
         self.partial_count = 0
+        self._last_rolling_update = ""
+
+        # Thread-safety: Vosk recognizer is not thread-safe; guard all access
+        self._lock = threading.Lock()
     
     def accept(self, pcm_int16_bytes):
         """
@@ -41,11 +46,10 @@ class ASRVosk:
         Args:
             pcm_int16_bytes: PCM audio data as bytes (int16)
         """
-        if self.recognizer.AcceptWaveform(pcm_int16_bytes):
-            # Final result available
-            result = self.recognizer.Result()
-            # For MVP, we only use partials, so we don't process final results
-            pass
+        with self._lock:
+            if self.recognizer.AcceptWaveform(pcm_int16_bytes):
+                # Consume final result to keep decoder stable (we ignore content)
+                _ = self.recognizer.Result()
     
     def get_partial_if_new(self) -> Optional[str]:
         """
@@ -54,7 +58,8 @@ class ASRVosk:
         Returns:
             New partial text or None if no new partial
         """
-        partial = self.recognizer.PartialResult()
+        with self._lock:
+            partial = self.recognizer.PartialResult()
         
         # Check if partial has changed (any change, not just length increase)
         if partial != self.last_partial:
@@ -100,7 +105,8 @@ class ASRVosk:
     
     def get_current_partial(self) -> str:
         """Get current partial text (may not be new)"""
-        partial = self.recognizer.PartialResult()
+        with self._lock:
+            partial = self.recognizer.PartialResult()
         return self._extract_text_from_partial(partial)
     
     def _extract_text_from_partial(self, partial_json: str) -> str:
@@ -136,11 +142,12 @@ class ASRVosk:
     
     def reset(self):
         """Reset ASR state"""
-        self.rolling_text = ""
-        self.last_partial = ""
-        self.partial_count = 0
-        self._last_rolling_update = ""
-        self.recognizer = vosk.KaldiRecognizer(self.model, self.sample_rate)
+        with self._lock:
+            self.rolling_text = ""
+            self.last_partial = ""
+            self.partial_count = 0
+            self._last_rolling_update = ""
+            self.recognizer = vosk.KaldiRecognizer(self.model, self.sample_rate)
     
     def convert_float32_to_int16_bytes(self, frame_f32):
         """

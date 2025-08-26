@@ -2,14 +2,16 @@ import numpy as np
 import sounddevice as sd
 import queue
 import threading
+import time
 from typing import Optional
 
 
 class AudioIO:
     """Audio input/output with duplex stream"""
     
-    def __init__(self, sample_rate=16000, frame_ms=20, input_gain=1.0, 
-                 input_device=None, output_device=None):
+    def __init__(self, sample_rate=16000, frame_ms=20, input_gain=1.0,
+                 input_device=None, output_device=None,
+                 vad_enabled: bool = True, vad_rms_threshold: float = 0.015):
         """
         Initialize audio I/O
         
@@ -26,6 +28,12 @@ class AudioIO:
         self.input_gain = input_gain
         self.input_device = input_device
         self.output_device = output_device
+        
+        # Simple RMS-based VAD parameters
+        self.vad_enabled = vad_enabled
+        self.vad_rms_threshold = vad_rms_threshold
+        self._last_voice_time_ms = 0.0
+        self._vad_lock = threading.Lock()
         
         # Audio stream
         self.stream = None
@@ -55,6 +63,14 @@ class AudioIO:
         for i in range(self.samples_per_frame):
             self.temp_input[i] = input_frame[i] * self.input_gain
         
+        # Simple RMS-based VAD (keep extremely light)
+        if self.vad_enabled:
+            # Vectorized RMS over the frame
+            rms = float(np.sqrt(np.mean(self.temp_input * self.temp_input)))
+            if rms >= self.vad_rms_threshold:
+                with self._vad_lock:
+                    self._last_voice_time_ms = time_now_ms()
+
         # Push to DAF ring
         if self.daf_ring:
             self.daf_ring.push(self.temp_input)
@@ -74,6 +90,11 @@ class AudioIO:
         # Write to output
         for i in range(self.samples_per_frame):
             outdata[i, 0] = output_frame[i]  # Mono output
+
+    def get_last_voice_time_ms(self) -> float:
+        """Get timestamp (ms) of the last time frame exceeded VAD threshold"""
+        with self._vad_lock:
+            return self._last_voice_time_ms
     
     def start(self):
         """Start audio stream"""
@@ -142,3 +163,8 @@ class AudioIO:
                 self.frame_queue.get_nowait()
             except queue.Empty:
                 break
+
+
+def time_now_ms() -> float:
+    """Monotonic-ish wall time in milliseconds (sufficient for VAD timing)."""
+    return time.time() * 1000.0

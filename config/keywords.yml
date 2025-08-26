@@ -24,7 +24,6 @@ stems:
   - my hobbies
   - my hobby
   - my hob
-  - i
 min_pred_tokens: 3
 max_pred_tokens: 5
 top_k: 20

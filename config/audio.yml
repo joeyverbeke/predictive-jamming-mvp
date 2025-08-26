@@ -9,3 +9,7 @@ output_device: null  # null means default device
 input_gain: 1.0
 output_gain: 0.9
 limiter_ceiling_db: -3.0
+vad_enabled: true
+vad_rms_threshold: 0.015
+vad_silence_ms: 1000
+daf_latch_until_silence: true

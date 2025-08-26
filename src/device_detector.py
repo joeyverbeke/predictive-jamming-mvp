@@ -160,14 +160,14 @@ class DeviceDetector:
     def get_daf_adjustment(self, input_device_id: Optional[int] = None, 
                           output_device_id: Optional[int] = None) -> int:
         """
-        Calculate DAF delay adjustment for current devices
+        Estimate Bluetooth latency to compensate in DAF (input + output)
         
         Args:
             input_device_id: Input device ID (None for default)
             output_device_id: Output device ID (None for default)
             
         Returns:
-            Additional delay to add to DAF in milliseconds
+            Estimated Bluetooth mouth-to-ear latency in milliseconds to subtract from target delay
         """
         input_info = self.get_device_info(input_device_id)
         output_info = self.get_device_info(output_device_id)

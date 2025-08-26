@@ -11,19 +11,17 @@ class DAFRing:
         
         Args:
             sample_rate: Audio sample rate in Hz
-            delay_ms: Total desired DAF delay in milliseconds (from speech to hearing)
+            delay_ms: Target total mouth-to-ear DAF delay in milliseconds
             buffer_duration_ms: Total buffer duration in milliseconds
-            bluetooth_adjustment_ms: Compensation for Bluetooth latency (subtracted from delay)
+            bluetooth_adjustment_ms: Estimated input+output Bluetooth latency to compensate
         """
         self.sample_rate = sample_rate
         self.delay_ms = delay_ms
         self.bluetooth_adjustment_ms = bluetooth_adjustment_ms
-        # For Bluetooth devices, use the Bluetooth latency as the minimum delay
-        # For wired devices, use the configured delay
-        if bluetooth_adjustment_ms > 0:
-            self.total_delay_ms = bluetooth_adjustment_ms
-        else:
-            self.total_delay_ms = delay_ms
+        # Compute ring delay to hit the target mouth-to-ear delay.
+        # ring_delay = max(0, target_delay - (estimated_bt_input + estimated_bt_output))
+        # Note: This is an estimate; actual stack latencies may vary.
+        self.total_delay_ms = max(0, delay_ms - bluetooth_adjustment_ms)
         
         # Calculate buffer parameters
         self.samples_per_frame = int(20 * sample_rate / 1000)  # 20ms frames
@@ -110,12 +108,8 @@ class DAFRing:
             bluetooth_adjustment_ms: Bluetooth latency to compensate for (subtracted from delay)
         """
         self.bluetooth_adjustment_ms = bluetooth_adjustment_ms
-        # For Bluetooth devices, use the Bluetooth latency as the minimum delay
-        # For wired devices, use the configured delay
-        if bluetooth_adjustment_ms > 0:
-            self.total_delay_ms = bluetooth_adjustment_ms
-        else:
-            self.total_delay_ms = self.delay_ms
+        # Recompute ring delay based on new estimated BT latency
+        self.total_delay_ms = max(0, self.delay_ms - bluetooth_adjustment_ms)
         self.delay_samples = int(self.total_delay_ms * self.sample_rate / 1000)
         
         # Recalculate read position

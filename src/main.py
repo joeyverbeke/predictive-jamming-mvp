@@ -104,6 +104,9 @@ class SpeechMonitor:
             )
             self.daf_ring.set_output_gain(self.audio_config['output_gain'])
             self.daf_ring.set_limiter_ceiling_db(self.audio_config['limiter_ceiling_db'])
+            utils.log_audio_status(
+                f"DAF target: {self.audio_config['daf_delay_ms']}ms, BT est: {bluetooth_adjustment}ms, ring delay applied: {self.daf_ring.total_delay_ms}ms"
+            )
             
             # Initialize audio I/O
             self.audio_io = AudioIO(
@@ -111,7 +114,9 @@ class SpeechMonitor:
                 frame_ms=self.audio_config['frame_ms'],
                 input_gain=self.audio_config['input_gain'],
                 input_device=self.audio_config['input_device'],
-                output_device=self.audio_config['output_device']
+                output_device=self.audio_config['output_device'],
+                vad_enabled=self.audio_config.get('vad_enabled', True),
+                vad_rms_threshold=self.audio_config.get('vad_rms_threshold', 0.015)
             )
             self.audio_io.set_daf_ring(self.daf_ring)
             
@@ -204,11 +209,12 @@ class SpeechMonitor:
         """Get last N words from partial text"""
         if not self.partial_text:
             return ""
-        
+        # When DAF is active and we latch until silence, don't truncate the partial
+        if self.state and self.state.is_active() and self.audio_config.get('daf_latch_until_silence', True):
+            return self.partial_text
         words_list = self.partial_text.split()
         if len(words_list) <= words:
             return self.partial_text
-        
         return " ".join(words_list[-words:])
     
     def _update_trigger_ring(self, hit: bool):
@@ -229,12 +235,15 @@ class SpeechMonitor:
         try:
             # Get current partial text (always available)
             current_partial = self.asr.get_current_partial()
-            if current_partial and current_partial != self.partial_text:
+            if current_partial != self.partial_text:
                 self.partial_text = current_partial
                 self.last_partial_update_time = utils.get_timestamp_ms()
-                # Log when partial text changes
+                # Log when partial text changes (only non-empty for signal)
                 if current_partial.strip():
                     utils.log_partial(current_partial)
+                else:
+                    # Clear stale horizon when partial becomes empty
+                    self.horizon_text = ""
             
             # Debug logging
             if self.debug_mode and self.frame_count % 100 == 0:  # Every 4 seconds
@@ -284,10 +293,30 @@ class SpeechMonitor:
                 self.daf_ring.set_active(True)
                 utils.log_daf_transition(True, "Trigger condition met")
             
-            # Update DAF state
-            if not self.state.update() and self.daf_ring.active:
-                self.daf_ring.set_active(False)
-                utils.log_daf_transition(False, "Hold timer expired")
+            # VAD-based deactivation: if silence for configured window, close DAF early
+            if self.state.is_active() and self.audio_config.get('vad_enabled', True):
+                last_voice_ms = self.audio_io.get_last_voice_time_ms()
+                silence_ms = current_time - last_voice_ms if last_voice_ms > 0 else float('inf')
+                silence_window_ms = self.audio_config.get('vad_silence_ms', 1000)
+                if silence_ms >= silence_window_ms:
+                    self.state.off()
+                    if self.daf_ring.active:
+                        self.daf_ring.set_active(False)
+                    # Reset trigger ring to avoid immediate re-trigger from stale hits
+                    try:
+                        self.trigger_ring.clear()
+                    except Exception:
+                        self.trigger_ring = deque(maxlen=6)
+                    # Clear horizon text to avoid stale LLM hits
+                    self.horizon_text = ""
+                    utils.log_daf_transition(False, f"VAD silence ({int(silence_ms)}ms >= {silence_window_ms}ms)")
+            
+            # Update DAF state (hold timer) unless latching until silence
+            latch_until_silence = self.audio_config.get('daf_latch_until_silence', True) and self.audio_config.get('vad_enabled', True)
+            if not latch_until_silence:
+                if not self.state.update() and self.daf_ring.active:
+                    self.daf_ring.set_active(False)
+                    utils.log_daf_transition(False, "Hold timer expired")
             
         except Exception as e:
             utils.log_error("Update cycle error", e)
