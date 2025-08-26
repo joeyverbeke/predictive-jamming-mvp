@@ -4,6 +4,8 @@ MVP Speech Monitoring Prototype for macOS
 Main orchestrator that coordinates audio, ASR, LLM prediction, and DAF triggering.
 """
 
+#windows
+
 import yaml
 import time
 import threading
